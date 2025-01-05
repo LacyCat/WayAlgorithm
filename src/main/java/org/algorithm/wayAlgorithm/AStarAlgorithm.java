@@ -85,58 +85,69 @@ public class AStarAlgorithm {
         return path;
     }
 
+    private boolean isPassable(Material material, Block block) {
+        // 기본 통과 가능 조건
+        boolean passable = material == Material.AIR || material == Material.OAK_DOOR || material == Material.LADDER;
+
+        // 문이 열려 있을 때 통과 가능
+        if (material.name().endsWith("_DOOR") && block.getBlockData() instanceof org.bukkit.block.data.Openable) {
+            org.bukkit.block.data.Openable door = (org.bukkit.block.data.Openable) block.getBlockData();
+            passable = door.isOpen();
+            Bukkit.getLogger().info("[DEBUG] Door at " + block.getLocation() + " is open: " + door.isOpen());
+        }
+        Bukkit.getLogger().info("[DEBUG] Block at " + block.getLocation() + " with material " + material + " is passable: " + passable);
+        return passable;
+    }
+
+    private boolean isValidHeight(World world, Location location) {
+        Block below = world.getBlockAt(location.clone().add(0, -1, 0));
+        Block current = world.getBlockAt(location);
+        Block above = world.getBlockAt(location.clone().add(0, 1, 0));
+
+        // 아래 블록이 반드시 단단한 블록이어야 함
+        boolean belowSolid = below.getType().isSolid();
+
+        // 현재와 위의 블록은 통과 가능해야 함
+        boolean passable = isPassable(current.getType(), current) && isPassable(above.getType(), above);
+        Bukkit.getLogger().info("[DEBUG] Location " + location + " - Below solid: " + belowSolid + ", Current passable: " + isPassable(current.getType(), current) + ", Above passable: " + isPassable(above.getType(), above));
+        return belowSolid && passable;
+    }
+
     private List<Location> getNeighbors(World world, Location location) {
         List<Location> neighbors = new ArrayList<>();
-
         int[][] directions = {
                 {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}, // Horizontal directions
                 {0, 1, 0}, {0, -1, 0}                         // Vertical directions
         };
 
-        Bukkit.getLogger().info("[DEBUG] Getting neighbors for location: " + location);
-
         for (int[] dir : directions) {
             Location neighbor = location.clone().add(dir[0], dir[1], dir[2]);
             Block block = world.getBlockAt(neighbor);
+            Bukkit.getLogger().info("[DEBUG] Checking neighbor at " + neighbor + " with material " + block.getType());
+            // 사다리를 타고 위/아래로 이동
+            if (block.getType() == Material.LADDER) {
+                Location ladderUp = neighbor.clone().add(0, 1, 0);
+                Location ladderDown = neighbor.clone().add(0, -1, 0);
+                if (isValidHeight(world, ladderUp)) {
+                    neighbors.add(ladderUp);
+                    Bukkit.getLogger().info("[DEBUG] Adding ladder upward neighbor at " + ladderUp);
+                }
+                if (isValidHeight(world, ladderDown)) {
+                    neighbors.add(ladderDown);
+                    Bukkit.getLogger().info("[DEBUG] Adding ladder downward neighbor at " + ladderDown);
+                }
+            }
 
-            // Debugging block check
-            Bukkit.getLogger().info("[DEBUG] Checking neighbor at " + neighbor + " with block type " + block.getType());
-
-            if (isPassable(block.getType()) && isValidHeight(world, neighbor)) {
+            // 일반 블록 이동
+            if (isPassable(block.getType(), block) && isValidHeight(world, neighbor)) {
                 neighbors.add(neighbor);
-                Bukkit.getLogger().info("[DEBUG] Valid neighbor added: " + neighbor);
-            } else {
-                Bukkit.getLogger().severe("[DEBUG] Invalid neighbor skipped: " + neighbor);
+                Bukkit.getLogger().info("[DEBUG] Adding valid neighbor at " + neighbor);
             }
         }
-
+        Bukkit.getLogger().info("[DEBUG] Total neighbors found: " + neighbors.size());
         return neighbors;
     }
 
-    private boolean isPassable(Material material) {
-        boolean passable = material == Material.AIR || material == Material.OAK_DOOR || material == Material.LADDER;
-        if (!passable) {
-            Bukkit.getLogger().warning("[DEBUG] Material " + material + " is not passable.");
-        }
-        return passable;
-    }
-
-    private boolean isValidHeight(World world, Location location) {
-        // 주어진 위치에서 아래와 위의 블록을 가져옵니다.
-        Block below = world.getBlockAt(location.clone().add(0, -1, 0));
-        Block above = world.getBlockAt(location.clone().add(0, 1, 0));
-
-        // 공기 블록은 통과할 수 있는 공간으로 처리
-        if (below.getType() == Material.AIR || above.getType() == Material.AIR) {
-            return true;
-        }
-
-        // 다른 블록에 대해서는 해당 블록이 통과 가능한지 체크
-        boolean belowValid = isPassable(below.getType());
-        boolean aboveValid = isPassable(above.getType());
-        Bukkit.getLogger().warning("[DEBUG] Valid height for location " + location + ": " + "below "+ belowValid + "above "+ aboveValid);
-        return belowValid && aboveValid;
-    }
 
     private void spawnArmorStands(List<Location> path) {
         for (int i = 0; i < path.size(); i++) {
