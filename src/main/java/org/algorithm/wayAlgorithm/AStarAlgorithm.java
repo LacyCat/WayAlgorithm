@@ -1,19 +1,14 @@
 package org.algorithm.wayAlgorithm;
 
-import io.papermc.paper.enchantments.EnchantmentRarity;
-import net.kyori.adventure.text.Component;
 import org.bukkit.*;
 import org.bukkit.block.Block;
-import org.bukkit.enchantments.Enchantment;
-import org.bukkit.enchantments.EnchantmentTarget;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.block.data.Powerable;
 import org.bukkit.entity.ArmorStand;
-import org.bukkit.entity.EntityCategory;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.util.EulerAngle;
-import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
 
@@ -91,7 +86,7 @@ public class AStarAlgorithm {
 
         // 문이 열려 있을 때 통과 가능
         if (material.name().endsWith("_DOOR") && block.getBlockData() instanceof org.bukkit.block.data.Openable) {
-            org.bukkit.block.data.Openable door = (org.bukkit.block.data.Openable) block.getBlockData();
+            org.bukkit.block.data.Openable  door = (org.bukkit.block.data.Openable) block.getBlockData();
             passable = door.isOpen();
             Bukkit.getLogger().info("[DEBUG] Door at " + block.getLocation() + " is open: " + door.isOpen());
         }
@@ -135,6 +130,19 @@ public class AStarAlgorithm {
                 if (isValidHeight(world, ladderDown)) {
                     neighbors.add(ladderDown);
                     Bukkit.getLogger().info("[DEBUG] Adding ladder downward neighbor at " + ladderDown);
+                }
+            }
+
+            if (block.getType() == Material.STONE_PRESSURE_PLATE) {
+                BlockData blockData = block.getBlockData();
+                if (blockData instanceof Powerable powerable && !powerable.isPowered()) {
+                    powerable.setPowered(true);
+                    block.setBlockData(blockData);
+                    Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                        powerable.setPowered(true);
+                        block.setBlockData(blockData);
+                    }, 20L);
+                    Bukkit.getLogger().info("[DEBUG] Activated pressure plate at " + block.getLocation());
                 }
             }
 
