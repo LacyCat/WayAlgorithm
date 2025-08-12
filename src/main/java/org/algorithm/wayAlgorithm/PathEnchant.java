@@ -1,7 +1,6 @@
 package org.algorithm.wayAlgorithm;
 
 import io.papermc.paper.enchantments.EnchantmentRarity;
-import net.kyori.adventure.key.Key;
 import net.kyori.adventure.text.Component;
 import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;

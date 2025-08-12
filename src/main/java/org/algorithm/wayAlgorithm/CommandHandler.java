@@ -1,7 +1,6 @@
 package org.algorithm.wayAlgorithm;
 
 import org.bukkit.*;
-import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
